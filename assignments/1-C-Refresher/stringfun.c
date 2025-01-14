@@ -31,7 +31,7 @@ int setup_buff(char *buff, char *user_str, int len) {
     int in_space = 0;
 
     if (!buff || !user_str || len <= 0) {
-        return -2;
+        return -2;  // Error: Invalid arguments
     }
 
     while (*src != '\0') {
@@ -47,7 +47,7 @@ int setup_buff(char *buff, char *user_str, int len) {
                 count++;
                 in_space = 0;
             } else {
-                return -1;
+                return -1;  // Error: Input string too large
             }
         }
         src++;
@@ -58,7 +58,7 @@ int setup_buff(char *buff, char *user_str, int len) {
         count++;
     }
 
-    return count;
+    return count;  // Return the length of the processed string
 }
 
 /**
@@ -220,6 +220,8 @@ int main(int argc, char *argv[]) {
     int rc;
     int user_str_len;
 
+    // TODO #1: Why is this safe?
+    // ANSWER: This is safe because we first check if argc < 2. If argc is less than 2, we call usage() and exit. This ensures that argv[1] exists before accessing it.
     if ((argc < 2) || (*argv[1] != '-')) {
         usage(argv[0]);
         exit(1);
@@ -232,6 +234,8 @@ int main(int argc, char *argv[]) {
         exit(0);
     }
 
+    // TODO #2: Why check argc < 3?
+    // ANSWER: This ensures that the user has provided the required input string after the option flag. Without this check, accessing argv[2] could cause a segmentation fault.
     if (argc < 3) {
         usage(argv[0]);
         exit(1);
@@ -240,8 +244,9 @@ int main(int argc, char *argv[]) {
     input_string = argv[2];
     buff = (char *)malloc(BUFFER_SZ);
 
+    // TODO #3: Handle malloc error
     if (!buff) {
-        perror("Memory allocation failed");
+        printf("Memory allocation failed\n");
         exit(99);
     }
 
@@ -293,3 +298,6 @@ int main(int argc, char *argv[]) {
     free(buff);
     exit(0);
 }
+
+// TODO #7: Why provide both buffer and length?
+// ANSWER: Providing both buffer and its length ensures that the functions are robust and can avoid buffer overflows by performing bounds checking. It makes the functions reusable with different buffer sizes.
