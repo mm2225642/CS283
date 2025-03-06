@@ -1,0 +1,19 @@
+1. Your shell forks multiple child processes when executing piped commands. How does your implementation ensure that all child processes complete before the shell continues accepting user input? What would happen if you forgot to call waitpid() on all child processes?
+
+In the execute_pipeline() function, after all commands are forked, the parent closes the pipe file descriptors and then calls waitpid() in a loop (once for each child process). This ensures that the parent (the shell) blocks until every child process terminates, collecting each child’s exit status. If we did not call waitpid() on all child processes, then “zombie” processes would be created—these are finished child processes that remain in the process table because their parent hasn’t yet read their exit status. This could lead to resource leaks, causing the shell to eventually run out of available processes or file descriptors if many commands are run without proper waitpid() calls.
+
+2. The dup2() function is used to redirect input and output file descriptors. Explain why it is necessary to close unused pipe ends after calling dup2(). What could go wrong if you leave pipes open?
+
+When we execute piped commands, we fork multiple child processes—one for each command in the pipeline. To ensure that all child processes finish before our shell resumes accepting user input, we use waitpid() in a loop, waiting for each child’s termination. This prevents any child process from becoming a zombie process, which would remain in the system’s process table until explicitly waited on by its parent.
+
+If we forgot to call waitpid() for all child processes, the system would accumulate zombie processes, eventually leading to resource exhaustion. Additionally, without waitpid(), our shell could return to the prompt while background processes are still running, leading to unpredictable behavior where new commands might interfere with unfinished ones.
+
+3. Your shell recognizes built-in commands (cd, exit, dragon). Unlike external commands, built-in commands do not require execvp(). Why is cd implemented as a built-in rather than an external command? What challenges would arise if cd were implemented as an external process?
+
+cd (change directory) must update the current working directory within the shell process itself. If cd were executed as an external program via execvp(), it would run in a child process and change that child’s working directory, but once the child finishes, the parent’s (the shell’s) working directory would remain unchanged. Consequently, you wouldn’t actually move around the file system in the shell. Making cd a built-in allows us to call chdir() directly in the shell process and keep that new directory state for subsequent commands.
+
+4. Currently, your shell supports a fixed number of piped commands (CMD_MAX). How would you modify your implementation to allow an arbitrary number of piped commands while still handling memory allocation efficiently? What trade-offs would you need to consider?
+
+To support an unlimited number of piped commands, we can replace the fixed-size arrays with dynamically allocated data structures—for instance, we can use a dynamically growing array or a linked list to store commands. As we parse the input line, we would reallocate memory or add nodes whenever we detect another |. The main trade-off is complexity versus flexibility. A dynamically growing structure requires careful memory management to avoid leaks or fragmentation.
+
+Another trade-off is performance: if we constantly reallocate memory as we parse very long pipelines, it might introduce overhead. However, most modern shells follow this reallocation approach to maintain flexibility. To balance efficiency and scalability, we could also impose practical limits (such as a maximum line length) to prevent unbounded growth while still supporting more than CMD_MAX commands.
